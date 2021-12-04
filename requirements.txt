@@ -38,7 +38,7 @@ nbformat==5.0.4
 notebook>=6.1.5
 numpy==1.18.1
 opencv-python
-pandas==1.0.1
+pandas
 pandocfilters==1.4.2
 parso==0.6.1
 pathtools==0.1.2

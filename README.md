@@ -20,7 +20,7 @@ apt --help
  - If it shows the help, that means you have the buildpack for apt installed
  - If you do not have it you can use this command to install the buildpack
  ```bash
- heroku buildpacks:add --index 1 https://github.com/heroku/heroku-buildpack-apt
+ heroku buildpacks:add --index 1 https://github.com/heroku/heroku-buildpack-apt --app your app name
  ```
 
 + Aptfile
@@ -41,7 +41,8 @@ apt-get install libsm6 libxrender1 libfontconfig1 libice6
 ```bash
 git push heroku master
 ```
-
+NB: From github connection run half of requirements avoiding timeout. It'll be cached in heroku
+then the second half
 
 #### By
 + Jesus Saves @JCharisTech

@@ -153,9 +153,8 @@ def main():
 
 	elif choice == 'About':
 		st.subheader("About Face Detection App")
-		st.markdown("Built with Streamlit by [JCharisTech](https://www.jcharistech.com/)")
-		st.text("Jesse E.Agbe(JCharis)")
-		st.success("Jesus Saves @JCharisTech")
+		st.markdown("Built with Streamlit by [Soumen Sarker](https://soumenksarker-personal-website-1--homepage-aqokf8.streamlitapp.com/)")
+		st.success("Isshor Saves @Soumen Sarker")
 
 
 

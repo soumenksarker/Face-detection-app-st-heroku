@@ -1,3 +1,11 @@
+from transformers import DetrFeatureExtractor, DetrForObjectDetection
+import requests
+import torch
+
+feature_extractor = DetrFeatureExtractor.from_pretrained("facebook/detr-resnet-50")
+model = DetrForObjectDetection.from_pretrained("facebook/detr-resnet-50")
+
+
 # Core Pkgs
 import time
 from json import load
@@ -14,7 +22,7 @@ st.text("Build with Streamlit and OpenCV")
 face_cascade = cv2.CascadeClassifier('frecog/haarcascade_frontalface_default.xml')
 eye_cascade = cv2.CascadeClassifier('frecog/haarcascade_eye.xml')
 smile_cascade = cv2.CascadeClassifier('frecog/haarcascade_smile.xml')
-obj_dedector = pipeline('object-detection')
+obj_detector = pipeline('object-detection')
 
 def detect_faces(our_image):
 	new_img = np.array(our_image.convert('RGB'))
@@ -68,9 +76,27 @@ def cannize_image(our_image):
 	canny = cv2.Canny(img, 100, 150)
 	return canny
 def detect_objects(im):
-    #c1.image(im, use_column_width=True)
-    predictions = obj_dedector(im)
-    st.image(predictions)
+	inputs = feature_extractor(images=im, return_tensors="pt")
+	outputs = model(**inputs)
+	# convert outputs (bounding boxes and class logits) to COCO API
+	target_sizes = torch.tensor([im.size[::-1]])
+	results = feature_extractor.post_process(outputs, target_sizes=target_sizes)[0]
+	boxes = []
+	f=None
+	for score, label, box in zip(results["scores"], results["labels"], results["boxes"]):
+		box = [round(i, 2) for i in box.tolist()]
+		# let's only keep detections with score > 0.9
+		if score > 0.9:
+			st.success(
+				f"Detected {model.config.id2label[label.item()]} with confidence "
+				f"{round(score.item(), 3)} at location {box}"
+			)
+			boxes.append(box)
+	new_img = np.array(im.convert('RGB'))
+	img = cv2.cvtColor(new_img,1)        
+	for (x, y, w, h) in boxes:
+		cv2.rectangle(img,(int(x),int(y)),(int(w), int(h)), (0, 0, 255))
+	return st.image(img)#st.image(box)
 
 @st.cache
 def load_image(img):
@@ -85,7 +111,7 @@ camera_photo = st.camera_input("Take a photo", on_change=change_photo_state)
 if "photo" not in st.session_state:
 	st.session_state["photo"]="not done"
 if choice == 'Detection':
-	st.subheader("Face Detection") 
+	st.subheader("Process your images ...") 
 	if st.session_state["photo"]=="done":
 		if uploaded_photo:
 			our_image= load_image(uploaded_photo)
@@ -121,47 +147,35 @@ if choice == 'Detection':
 
 		else:
 			st.image(our_image,width=300)
+		# Face Detection
+		task = ["Faces","Smiles","Eyes","Cannize","Cartonize","detect_objects"]
+		feature_choice = st.sidebar.selectbox("Find Features",task)
+		if st.button("Process"):
+			if feature_choice == 'Faces':
+				result_img,result_faces = detect_faces(our_image)
+				st.image(result_img)
 
+				st.success("Found {} faces".format(len(result_faces)))
+			elif feature_choice == 'Smiles':
+				result_img = detect_smiles(our_image)
+				st.image(result_img)
+			elif feature_choice == 'Eyes':
+				with st.spinner('Wait for it...'):
+					time.sleep(5)
+				result_img = detect_eyes(our_image)
+				st.image(result_img)
 
-	# Face Detection
-	task = ["Faces","Smiles","Eyes","Cannize","Cartonize","detect_objects"]
-	feature_choice = st.sidebar.selectbox("Find Features",task)
-	if st.button("Process"):
-		if feature_choice == 'Faces':
-			with st.spinner('Wait for it...'):
-				time.sleep(5)
-			result_img,result_faces = detect_faces(our_image)
-			st.image(result_img)
-
-			st.success("Found {} faces".format(len(result_faces)))
-		elif feature_choice == 'Smiles':
-			with st.spinner('Wait for it...'):
-				time.sleep(5)
-			result_img = detect_smiles(our_image)
-			st.image(result_img)
-
-
-		elif feature_choice == 'Eyes':
-			with st.spinner('Wait for it...'):
-				time.sleep(5)
-			result_img = detect_eyes(our_image)
-			st.image(result_img)
-
-		elif feature_choice == 'Cartonize':
-			with st.spinner('Wait for it...'):
-				time.sleep(5)
-			result_img = cartonize_image(our_image)
-			st.image(result_img)
-
-		elif feature_choice == 'Cannize':
-			with st.spinner('Wait for it...'):
-				time.sleep(5)
-			result_canny = cannize_image(our_image)
-			st.image(result_canny)
-		elif feature_choice == 'detect_objects':
-			 detect_objects(our_image)
+			elif feature_choice == 'Cartonize':
+				result_img = cartonize_image(our_image)
+				st.image(result_img)
+			elif feature_choice == 'Cannize':
+				result_canny = cannize_image(our_image)
+				st.image(result_canny)
+			elif feature_choice == 'detect_objects':
+				detect_objects(our_image)
 			
 elif choice == 'About':
 	st.subheader("About Face Detection App")
 	st.markdown("Built with Streamlit by [Soumen Sarker](https://soumen-sarker-personal-site.streamlitapp.com/)")
-	st.success("Isshor Saves @Soumen Sarker")
+	st.markdown("Credit [here](https://huggingface.co/models?pipeline_tag=object-detection)")
+	#st.success("Isshor Saves @Soumen Sarker")
